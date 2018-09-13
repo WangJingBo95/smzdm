@@ -1,0 +1,16 @@
+server:
+  port: 80
+#  context-path: /toutiao
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/smzdm?serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  velocity:
+#    view-names: newspic
+    suffix: .html
+    expose-session-attributes: true
+    expose-request-attributes: true
+#    allow-request-override: true
+#    allow-session-override: true

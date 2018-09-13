@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wangdao.smzdm.dao.VoMapper">
+    <resultMap id="MultiResult" type="com.wangdao.smzdm.bean.Vo">
+        <id property="id" column="id"/>
+        <result property="uid" column="uid"/>
+        <result property="nid" column="nid"/>
+        <association property="user" javaType="com.wangdao.smzdm.bean.User"
+                     column="uid" select="com.wangdao.smzdm.dao.UserMapper.findUserById"/>
+        <association property="news" javaType="com.wangdao.smzdm.bean.News"
+                     column="nid" select="com.wangdao.smzdm.dao.NewsMapper.findNewsById"/>
+    </resultMap>
+    <select id="findAllVo" resultMap="MultiResult">
+      SELECT * FROM t_vo  ORDER BY id DESC
+    </select>
+    <select id="findVoByNid" parameterType="java.lang.Integer" resultMap="MultiResult">
+        SELECT * FROM t_vo WHERE nid=#{id}
+    </select>
+</mapper>
