@@ -6,6 +6,8 @@ import com.wangdao.smzdm.service.CommentService;
 import com.wangdao.smzdm.service.CommentVoService;
 import com.wangdao.smzdm.service.NewsService;
 import com.wangdao.smzdm.service.VoService;
+import com.wangdao.smzdm.utils.JedisUtils;
+import org.apache.velocity.tools.generic.DateTool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
+import redis.clients.jedis.Jedis;
 import sun.plugin.com.event.COMEventHandler;
 
 import javax.servlet.http.HttpSession;
@@ -42,14 +45,41 @@ public class NewsController {
      * @return mv
      */
     @RequestMapping("/news/{id}")
-    public ModelAndView find_news(@PathVariable Integer id, ModelAndView mv) {
-
+    public ModelAndView find_news(@PathVariable Integer id, ModelAndView mv, HttpSession session) {
+        //获取登录用户
+        User user = (User) session.getAttribute("user");
         Vo vo = voService.findVoByNid(id);
         List<CommentVo> commentVos = commentVoService.findCommentVosByNid(id);
-        mv.addObject("news", vo.getNews());
+        News news = vo.getNews();
+
+        //为vo中的likeCount赋值，Redis
+
+        Long scard_dislike = JedisUtils.scard(vo.getNid() + "dislike");
+        Long scard_like = JedisUtils.scard(vo.getNid() + "like");
+        //将登录用户点过赞或者踩的进行标记
+        if (user != null) {
+            Boolean is_dislike = JedisUtils.sismember(vo.getNid() + "dislike", user.getId().toString());
+            Boolean is_like = JedisUtils.sismember(vo.getNid() + "like", user.getId().toString());
+            if (is_like) {
+                vo.setLike(1);
+            } else if (is_dislike) {
+                vo.setLike(-1);
+            }
+        }
+        Long msg = scard_like - scard_dislike;
+        news.setLikeCount(msg.intValue());
+
+
+        mv.addObject("news", news);
         mv.addObject("like", vo.getLike());
         mv.addObject("owner", vo.getUser());
         mv.addObject("comments", commentVos);
+
+        Object date = session.getAttribute("date");
+        if (date == null) {
+            session.setAttribute("date", new DateTool());
+        }
+
 
         mv.setViewName("detail");
         return mv;
@@ -161,6 +191,8 @@ public class NewsController {
         comment.setCreatedDate(createdDate);
         comment.setUid(user.getId());
         commentService.addComment(comment);
+        //给被评论的新闻，评论数加1.
+        newsService.updateCommentCount(newsId);
         //获取刚刚插入的评论在数据库中的id
         Comment comment_find = commentService.findCommentByUidAndCDate(comment.getUid(), createdDate);
 
@@ -173,5 +205,51 @@ public class NewsController {
 
         mv.setViewName("redirect:/news/" + newsId);
         return mv;
+    }
+
+    @RequestMapping("/like")
+    public Map<String, Object> like(Integer newsId, HttpSession session) {
+        HashMap<String, Object> map = new HashMap<>();
+        User user_operator = (User) session.getAttribute("user");
+
+        if (user_operator != null) {
+            JedisUtils.sadd(newsId + "like", user_operator.getId().toString());
+            JedisUtils.srem(newsId + "dislike", user_operator.getId().toString());
+
+            Long scard_like = JedisUtils.scard(newsId + "like");
+            Long scard_dislike = JedisUtils.scard(newsId + "dislike");
+            Long msg = scard_like - scard_dislike;
+
+            map.put("msg", msg);
+
+            map.put("code", 0);
+        }else {
+            map.put("code", 1);
+        }
+
+        return map;
+    }
+
+    @RequestMapping("/dislike")
+    public Map<String, Object> dislike(Integer newsId, HttpSession session) {
+        HashMap<String, Object> map = new HashMap<>();
+        User user_operator = (User) session.getAttribute("user");
+
+        if (user_operator != null) {
+            JedisUtils.sadd(newsId + "dislike", user_operator.getId().toString());
+            JedisUtils.srem(newsId + "like", user_operator.getId().toString());
+
+            Long scard_dislike = JedisUtils.scard(newsId + "dislike");
+            Long scard_like = JedisUtils.scard(newsId + "like");
+
+            Long msg = scard_dislike - scard_like;
+            map.put("msg", -msg);
+
+            map.put("code", 0);
+        } else {
+            map.put("code", 1);
+        }
+
+        return map;
     }
 }

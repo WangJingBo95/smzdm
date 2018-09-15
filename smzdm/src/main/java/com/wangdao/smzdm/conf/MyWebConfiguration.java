@@ -12,10 +12,10 @@ public class MyWebConfiguration extends WebMvcConfigurerAdapter {
 
     @Autowired
     MyInterceptor myInterceptor;
-
+//, "/like", "/dislike"
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(myInterceptor).addPathPatterns("/user/*/*","/user/*");
+        registry.addInterceptor(myInterceptor).addPathPatterns("/user/*/*", "/user/*");
         super.addInterceptors(registry);
     }
 }

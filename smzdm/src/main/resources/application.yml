@@ -8,9 +8,8 @@ spring:
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
   velocity:
-#    view-names: newspic
     suffix: .html
     expose-session-attributes: true
     expose-request-attributes: true
-#    allow-request-override: true
+    allow-request-override: true #允许覆盖model中相同名的Object
 #    allow-session-override: true

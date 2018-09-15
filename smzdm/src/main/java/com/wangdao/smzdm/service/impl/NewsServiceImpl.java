@@ -27,4 +27,10 @@ public class NewsServiceImpl implements NewsService {
     public News findNewsByUidAndCDate(Integer uid, Date createdDate) {
         return newsMapper.findNewsByUidAndCDate(uid,createdDate);
     }
+
+
+    @Override
+    public void updateCommentCount(Integer newsId) {
+        newsMapper.updateCommentCount(newsId);
+    }
 }

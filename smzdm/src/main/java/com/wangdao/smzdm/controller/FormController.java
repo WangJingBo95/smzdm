@@ -1,24 +1,26 @@
 package com.wangdao.smzdm.controller;
 
+import com.wangdao.smzdm.bean.News;
 import com.wangdao.smzdm.bean.User;
 import com.wangdao.smzdm.bean.Vo;
 import com.wangdao.smzdm.service.UserService;
 import com.wangdao.smzdm.service.VoService;
+import com.wangdao.smzdm.utils.JedisUtils;
 import org.apache.velocity.tools.generic.DateTool;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
+import redis.clients.jedis.Jedis;
 
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.List;
 
-@Controller
+@RestController
 public class FormController {
     @Autowired
     VoService voService;
@@ -27,13 +29,13 @@ public class FormController {
 
     /**
      * 打开首页
+     *
      * @param mv
      * @param pop
      * @param session
      * @param request
      * @return
      */
-    @ResponseBody
     @RequestMapping("/")
     public ModelAndView goHomePage(ModelAndView mv, @RequestParam(name = "pop", defaultValue = "0") String pop,
                                    HttpSession session, HttpServletRequest request) {
@@ -69,27 +71,34 @@ public class FormController {
 
         List<Vo> vos = voService.findAllVo();
 
-        mv.addObject("vos", vos);
-//        mv.addObject("date", new DateTool());
-        session.setAttribute("date", new DateTool());
-        mv.setViewName("home");
-        return mv;
-    }
+        //遍历vo，为其中的likeCount赋值，Redis
+        for (Vo vo : vos) {
+            Long scard_dislike = JedisUtils.scard(vo.getNid() + "dislike");
+            Long scard_like = JedisUtils.scard(vo.getNid() + "like");
+            //将登录用户点过赞或者踩的进行标记
+            if (user!=null){
+                Boolean is_dislike = JedisUtils.sismember(vo.getNid() + "dislike", user.getId().toString());
+                Boolean is_like = JedisUtils.sismember(vo.getNid() + "like", user.getId().toString());
+                if (is_like) {
+                    vo.setLike(1);
+                } else if (is_dislike) {
+                    vo.setLike(-1);
+                }
+            }
+            Long msg = scard_like - scard_dislike;
+            News news = vo.getNews();
+            news.setLikeCount(msg.intValue());
+            vo.setNews(news);
 
-    /**
-     * 打开html
-     * @param mv
-     * @param formName
-     * @return
-     */
-    @ResponseBody
-    @RequestMapping("/{formName}")
-    public ModelAndView goPage(ModelAndView mv, @PathVariable String formName) {
-        if ("favicon".equals(formName)) {
-            mv.setViewName("home");
-            return mv;
         }
-        mv.setViewName(formName);
+
+        mv.addObject("vos", vos);
+        Object date = session.getAttribute("date");
+        if (date == null) {
+            session.setAttribute("date", new DateTool());
+        }
+        mv.setViewName("/home");
+
         return mv;
     }
 

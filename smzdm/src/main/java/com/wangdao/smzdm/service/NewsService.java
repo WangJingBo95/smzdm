@@ -10,4 +10,8 @@ public interface NewsService {
     boolean addNews(News news);
 
     News findNewsByUidAndCDate(Integer uid, Date createdDate);
+
+    void updateCommentCount(Integer newsId);
+
+
 }
