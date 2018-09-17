@@ -37,4 +37,9 @@ public class MessageServiceImpl implements MessageService {
     public void deleteOneById(Integer cid) {
         messageMapper.deleteOneById(cid);
     }
+
+    @Override
+    public List<Conversation> findMsgByTidOrFid(Integer tid) {
+        return messageMapper.findMsgByTidOrFid(tid);
+    }
 }

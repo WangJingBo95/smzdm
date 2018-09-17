@@ -16,4 +16,6 @@ public interface MessageService {
     void updateUnreadStatusById(Integer id);
 
     void deleteOneById(Integer cid);
+
+    List<Conversation> findMsgByTidOrFid(Integer tid);
 }

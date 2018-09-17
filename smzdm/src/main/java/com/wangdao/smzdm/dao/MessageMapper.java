@@ -22,4 +22,6 @@ public interface MessageMapper {
 
     @Delete("delete from t_conversation where id=#{id}")
     void deleteOneById(@Param("id") Integer cid);
+    @Select("select * from t_conversation where fromid=#{id} or toid=#{id}")
+    List<Conversation> findMsgByTidOrFid(@Param("id") Integer tid);
 }

@@ -36,20 +36,35 @@ public class MessageController {
         User user_login = (User) session.getAttribute("user");
         Integer tid = user_login.getId();
 
-        //查询发给该登录用户的所有消息
-        List<Conversation> conversationList = messageService.findMsgByTid(tid);
+        //查询发给该登录用户和该用户发给别用户的所有消息
+//        List<Conversation> conversationList = messageService.findMsgByTid(tid);
+        List<Conversation> conversationList = messageService.findMsgByTidOrFid(tid);
 
-        //将该用户的和其他用户的会话信息按发件人不同来分类
+        //将该用户的和其他用户的会话信息按发件人和收件人不同来分类
         HashSet<String> strs = new HashSet<>();
         for (Conversation conversation : conversationList) {
             String conversationId = conversation.getConversationId();
             strs.add(conversationId);
         }
 
+        //将集合中的值取出放入链表中
+        ArrayList<String> strs_mid = new ArrayList<>(strs);
+        ArrayList<String> strs_last = new ArrayList<>(strs);
+
+        for (int i = 0; i < strs_mid.size(); i++) {
+            for (int j = strs_mid.size() - 1; j > i; j--) {
+                String[] split = strs_mid.get(j).split("_");
+                String s = split[1] + "_" + split[0];
+                if (strs_mid.get(i).equals(s)) {
+                    strs_last.remove(strs_mid.get(j));
+                }
+            }
+        }
+
         //构建一个会话集合，每个对象为一用户和登录用户的会话消息的链表
         List<ConversationVo> conversationVoList = new ArrayList<>();
         //将%发给登录用户的消息封装，同时查询登录用户和对应用户发送的消息
-        for (String s : strs) {
+        for (String s : strs_last) {
             String[] split = s.split("_");
             String to_from = split[1] + "_" + split[0];
             ArrayList<Conversation> cs_to_from = messageService.findMSgByConversationId(to_from);
@@ -64,8 +79,15 @@ public class MessageController {
                     all.add(con);
                     //获取发信人
                     Integer fromid = con.getFromid();
-                    User userById = userService.findUserById(fromid);
-                    conversationVo.setUser(userById);
+                    //如果发信人是登录用户
+                    if (fromid.equals(tid)) {
+                        Integer toid = con.getToid();
+                        User userById = userService.findUserById(toid);
+                        conversationVo.setUser(userById);
+                    } else {
+                        User userById = userService.findUserById(fromid);
+                        conversationVo.setUser(userById);
+                    }
                     //获取该信息是否被读取
                     Integer unread1 = con.getUnread();
                     if (unread1 == 1) {
@@ -96,7 +118,8 @@ public class MessageController {
      * @return
      */
     @RequestMapping("/msg/detail")
-    public ModelAndView detail(String conversationId, ModelAndView mv) {
+    public ModelAndView detail(String conversationId, ModelAndView mv,HttpSession session) {
+        User user_login = (User) session.getAttribute("user");
         //将from_to和to_from的消息查询，然后按时间倒序
         String[] split = conversationId.split("_");
         String to_from = split[1] + "_" + split[0];
@@ -104,7 +127,9 @@ public class MessageController {
         ArrayList<Conversation> messages = messageService.findMSgByTwoConversationId(conversationId, to_from);
         if (messages != null) {
             for (Conversation message : messages) {
-                messageService.updateUnreadStatusById(message.getId());
+                if (message.getToid().equals(user_login.getId())){
+                    messageService.updateUnreadStatusById(message.getId());
+                }
                 Integer fromid = message.getFromid();
                 User userById = userService.findUserById(fromid);
                 String name = userById.getName();
