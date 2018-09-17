@@ -1,6 +1,8 @@
 package com.wangdao.smzdm.controller;
 
 
+import com.wangdao.smzdm.bean.Conversation;
+import com.wangdao.smzdm.bean.ConversationVo;
 import com.wangdao.smzdm.bean.User;
 import com.wangdao.smzdm.service.NewsService;
 import com.wangdao.smzdm.service.UserService;
@@ -99,7 +101,7 @@ public class UserController {
                 User user_had_reg = userService.findUserByUsername(username);
                 session.setAttribute("user", user_had_reg);
             } else {
-                map.put("msgpwd", "xxx");
+                map.put("msgpwd", "注册失败");
             }
             return map;
         }
@@ -143,5 +145,52 @@ public class UserController {
         }
         mv.setViewName("redirect:/");
         return mv;
+    }
+
+    /**
+     * 打开发私信的弹出框
+     *
+     * @param mv
+     * @return
+     */
+    @RequestMapping("/user/tosendmsg")
+    public ModelAndView toSendMsg(ModelAndView mv) {
+        mv.setViewName("sendmsg");
+        return mv;
+    }
+
+    /**
+     * 发送私信
+     *
+     * @param toName
+     * @param content
+     * @return
+     */
+    @RequestMapping("/user/msg/addMessage")
+    public Map<String, Object> addMsg(String toName, String content, HttpSession session) {
+        HashMap<String, Object> map = new HashMap<>();
+        User fromUser = (User) session.getAttribute("user");
+        Integer fid = fromUser.getId();
+        User toUser = userService.findUserByUsername(toName);
+        if (toUser == null) {
+            map.put("code", 1);
+            map.put("msg", "用户不存在");
+            return map;
+        }
+        Integer tid = toUser.getId();
+        //将私信发到目标邮箱
+        //创建一个消息
+        Conversation conversation = new Conversation();
+        conversation.setFromid(fid);//消息发送者id
+        conversation.setToid(tid);//消息接收者id
+        conversation.setContent(content);//消息内容
+        conversation.setCreatedDate(new Date());//消息发送时间
+        conversation.setUnread(1);//未读 1
+        conversation.setConversationId(fid + "_" + tid);//会话id
+        //插入数据
+        userService.addMsg(conversation);
+        map.put("code", 0);
+        map.put("msg", "123");
+        return map;
     }
 }

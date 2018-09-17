@@ -1,10 +1,13 @@
 package com.wangdao.smzdm.dao;
 
+import com.wangdao.smzdm.bean.Conversation;
 import com.wangdao.smzdm.bean.User;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+
+import java.util.List;
 
 @Mapper
 public interface UserMapper {
@@ -19,4 +22,10 @@ public interface UserMapper {
 
     @Insert("insert into t_user values(null,#{user.name},#{user.password},#{user.headUrl})")
     int registerUser(@Param("user") User user_reg);
+
+    @Insert("insert into t_conversation values(null,#{co.fromid},#{co.toid}," +
+            "#{co.content},#{co.createdDate},#{co.unread},#{co.conversationId})")
+    void addMsg(@Param("co") Conversation conversation);
+
+
 }

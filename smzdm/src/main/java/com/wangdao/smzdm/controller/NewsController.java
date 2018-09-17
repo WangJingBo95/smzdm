@@ -223,11 +223,13 @@ public class NewsController {
             map.put("msg", msg);
 
             map.put("code", 0);
-        }else {
-            map.put("code", 1);
+            return map;
+        } else {
+//            map.put("code", 1);
+            return null;
+
         }
 
-        return map;
     }
 
     @RequestMapping("/dislike")
@@ -246,10 +248,12 @@ public class NewsController {
             map.put("msg", -msg);
 
             map.put("code", 0);
+            return map;
         } else {
-            map.put("code", 1);
+//            map.put("code", 1);
+//            map.put("msg","请登录后，再进行此操作");
+            return null;
         }
 
-        return map;
     }
 }
